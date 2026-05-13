@@ -1,0 +1,256 @@
+openapi: 3.0.0
+info:
+  title: Books CRUD API
+  description: A simple CRUD API for managing books - designed for k6 load testing
+  version: 1.0.0
+  contact:
+    name: Gabriel Cavalcante
+    url: https://github.com/Gabriel-Cavalcantte
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
+  - url: http://api:3000
+    description: Docker Compose server
+
+paths:
+  /health:
+    get:
+      summary: Health check endpoint
+      operationId: getHealth
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "UP"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /api/books:
+    get:
+      summary: List all books
+      operationId: listBooks
+      tags:
+        - Books
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Items per page (max 100)
+      responses:
+        '200':
+          description: List of books
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Book'
+                  pagination:
+                    type: object
+                    properties:
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      total:
+                        type: integer
+                      pages:
+                        type: integer
+
+    post:
+      summary: Create a new book
+      operationId: createBook
+      tags:
+        - Books
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - author
+              properties:
+                title:
+                  type: string
+                  example: "The Go Programming Language"
+                author:
+                  type: string
+                  example: "Robert Griesemer"
+                isbn:
+                  type: string
+                  example: "978-0134190441"
+                year:
+                  type: integer
+                  example: 2015
+                stock:
+                  type: integer
+                  default: 0
+                  example: 5
+      responses:
+        '201':
+          description: Book created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '400':
+          description: Invalid request (missing title/author or duplicate ISBN)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+  /api/books/{id}:
+    get:
+      summary: Get a specific book by ID
+      operationId: getBook
+      tags:
+        - Books
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+
+    put:
+      summary: Update a book
+      operationId: updateBook
+      tags:
+        - Books
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                author:
+                  type: string
+                isbn:
+                  type: string
+                year:
+                  type: integer
+                stock:
+                  type: integer
+      responses:
+        '200':
+          description: Book updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Book'
+        '404':
+          description: Book not found
+        '400':
+          description: Duplicate ISBN or invalid request
+
+    delete:
+      summary: Delete a book
+      operationId: deleteBook
+      tags:
+        - Books
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  id:
+                    type: integer
+        '404':
+          description: Book not found
+
+components:
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique book identifier
+        title:
+          type: string
+          description: Book title
+        author:
+          type: string
+          description: Book author
+        isbn:
+          type: string
+          nullable: true
+          description: ISBN code (optional)
+        year:
+          type: integer
+          nullable: true
+          description: Publication year (optional)
+        stock:
+          type: integer
+          description: Number of copies in stock
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
