@@ -1,8 +1,12 @@
 {
-  "name": "k6-automated-tests",
-  "version": "1.0.0",
+  "name": "k6",
+  "version": "2.0.0",
+  "description": "Complete QA portfolio with k6 load testing, CRUD API, frontend, and Grafana dashboards",
   "scripts": {
-    "test": "k6 run ./Scenarios/Get-Cep.js",
-    "test:report": "k6 run --out json=test_results.json ./Scenarios/Get-Cep.js"
+    "test": "k6 run ./k6/scenarios/smoke.js",
+    "test:load": "k6 run --out json=test_results.json ./k6/scenarios/load.js",
+    "test:stress": "k6 run ./k6/scenarios/stress.js",
+    "test:spike": "k6 run ./k6/scenarios/spike.js",
+    "test:browser": "k6 run ./k6/scenarios/browser.js"
   }
 }

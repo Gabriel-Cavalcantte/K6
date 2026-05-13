@@ -1,8 +1,6 @@
 
-import { options } from './options.js';
-import { default as getCepTest } from './Scenarios/Get-Cep.js';
+import { options } from './k6/options/smoke-options.js';
+import { default as smokeTest } from './k6/scenarios/smoke.js';
 
 export { options };
-export default function () {
-    getCepTest();
-}
+export default smokeTest;
