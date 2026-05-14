@@ -29,14 +29,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'UP', timestamp: new Date().toISOString() });
 });
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc, {
-  swaggerOptions: {
-    urls: [{
-      url: '/swagger.yaml',
-      name: 'Books API'
-    }]
-  }
-}));
+// Serve Swagger YAML file
+app.get('/swagger.yaml', (req, res) => {
+  res.type('application/yaml').send(swaggerFile);
+});
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
 app.use('/api/books', booksRouter);
 
