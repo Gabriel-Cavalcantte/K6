@@ -16,7 +16,7 @@ export const options = {
   },
 };
 
-const API_BASE_URL = __ENV.API_URL || 'http://api:3000';
+const API_BASE_URL = __ENV.API_URL || 'http://localhost:3000';
 
 export default function () {
   // Very simple, fast requests during spike

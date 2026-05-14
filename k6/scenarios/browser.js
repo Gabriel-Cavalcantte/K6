@@ -19,7 +19,7 @@ export const options = {
   },
 };
 
-const FRONTEND_URL = __ENV.FRONTEND_URL || 'http://frontend:8080';
+const FRONTEND_URL = __ENV.FRONTEND_URL || 'http://localhost:8080';
 
 export default async function () {
   const page = await browser.newPage();

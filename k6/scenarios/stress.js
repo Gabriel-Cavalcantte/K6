@@ -32,7 +32,7 @@ export default function () {
     try {
       const body = JSON.parse(createRes.body);
       if (body.id) {
-        const deleteRes = http.delete(`${API_BASE_URL}/api/books/${body.id}`);
+        const deleteRes = http.del(`${API_BASE_URL}/api/books/${body.id}`);
         check(deleteRes, {
           'delete status 200': (r) => r.status === 200,
         });

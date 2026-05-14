@@ -50,7 +50,7 @@ export default function () {
     sleep(0.5);
 
     // DELETE /api/books/{id} - delete book (cleanup)
-    const deleteRes = http.delete(`${API_BASE_URL}/api/books/${bookId}`);
+    const deleteRes = http.del(`${API_BASE_URL}/api/books/${bookId}`);
     validateDeleteResponse(deleteRes);
     sleep(0.5);
   }

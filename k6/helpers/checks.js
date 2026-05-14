@@ -84,8 +84,7 @@ export function validateDeleteResponse(response) {
 }
 
 export function validateErrorResponse(response, expectedStatus) {
-  return check(response, {
-    `status is ${expectedStatus}`: (r) => r.status === expectedStatus,
+  const checks = {
     'has error message': (r) => {
       try {
         const body = JSON.parse(r.body);
@@ -94,5 +93,7 @@ export function validateErrorResponse(response, expectedStatus) {
         return false;
       }
     },
-  });
+  };
+  checks['status is ' + expectedStatus] = (r) => r.status === expectedStatus;
+  return check(response, checks);
 }

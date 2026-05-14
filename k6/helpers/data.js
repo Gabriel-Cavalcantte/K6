@@ -47,4 +47,4 @@ export function generateBulkBooks(count) {
   return books;
 }
 
-export const API_BASE_URL = __ENV.API_URL || 'http://api:3000';
+export const API_BASE_URL = __ENV.API_URL || 'http://localhost:3000';
