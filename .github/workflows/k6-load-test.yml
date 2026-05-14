@@ -1,0 +1,122 @@
+name: k6 Load Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Test scenario to run'
+        required: true
+        default: 'load'
+        type: choice
+        options:
+          - smoke
+          - load
+          - stress
+          - spike
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install API dependencies
+        run: npm ci
+        working-directory: ./api
+
+      - name: Install k6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates gnupg2
+          sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: Build Docker images
+        run: |
+          docker build -t k6-api:latest ./api
+          docker build -t k6-frontend:latest ./frontend
+          docker build -t k6-influxdb:latest -f - . << 'EOF'
+          FROM influxdb:2.7-alpine
+          ENV INFLUXDB_DB=k6
+          ENV INFLUXDB_ADMIN_USER=admin
+          ENV INFLUXDB_ADMIN_PASSWORD=adminpassword
+          ENV INFLUXDB_HTTP_AUTH_ENABLED=true
+          EXPOSE 8086
+          EOF
+
+      - name: Start Docker Compose services (no k6)
+        run: |
+          docker-compose up -d postgres api frontend influxdb grafana
+          sleep 15  # Wait for services to be ready
+
+      - name: Wait for API to be healthy
+        run: |
+          for i in {1..30}; do
+            if curl -f http://localhost:3000/health; then
+              echo "API is healthy"
+              exit 0
+            fi
+            echo "Waiting for API... ($i/30)"
+            sleep 2
+          done
+          echo "API health check failed"
+          exit 1
+
+      - name: Run k6 ${{ github.event.inputs.scenario }} test
+        run: |
+          k6 run \
+            --out json=test_results_${{ github.event.inputs.scenario }}.json \
+            --out influxdb=http://localhost:8086/k6 \
+            k6/scenarios/${{ github.event.inputs.scenario }}.js
+        env:
+          API_URL: http://localhost:3000
+          FRONTEND_URL: http://localhost:8080
+          K6_BROWSER_ENABLED: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-${{ github.event.inputs.scenario }}-results
+          path: test_results_${{ github.event.inputs.scenario }}.json
+          retention-days: 30
+
+      - name: Get InfluxDB query results
+        if: always()
+        run: |
+          echo "=== Test Metrics Summary ==="
+          echo "Test scenario: ${{ github.event.inputs.scenario }}"
+          echo "Test results saved to artifact: test_results_${{ github.event.inputs.scenario }}.json"
+          echo ""
+          echo "To view detailed metrics:"
+          echo "1. Access Grafana at http://localhost:3001 (admin/admin)"
+          echo "2. Check the k6 Load Testing Dashboard"
+          echo "3. Metrics are stored in InfluxDB for 7 days"
+
+      - name: Stop Docker Compose
+        if: always()
+        run: docker-compose down
+
+      - name: Create test summary
+        if: always()
+        run: |
+          echo "## k6 ${{ github.event.inputs.scenario }} Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scenario:** ${{ github.event.inputs.scenario }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** $([ -f test_results_${{ github.event.inputs.scenario }}.json ] && echo 'Completed' || echo 'Failed')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Artifacts:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Test results: test_results_${{ github.event.inputs.scenario }}.json" >> $GITHUB_STEP_SUMMARY
+          echo "- Metrics stored in InfluxDB" >> $GITHUB_STEP_SUMMARY
